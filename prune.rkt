@@ -15,7 +15,11 @@
 ;; This sketch uses equal?-keyed hashing; an efficient version would
 ;; hash-cons the key values produced by the user's semantic function.
 
-(provide prune skip-prune)
+(require "microkanren.rkt"
+         "wrappers.rkt")
+
+(provide prune skip-prune
+         ground? ground-key when-ground)
 
 ;; Sentinel a key function may return to mean "don't dedup yet" —
 ;; typically because the relevant variables are still fresh.
@@ -41,3 +45,41 @@
          [else
           (hash-set! seen k #t)
           (cons s/c (prune-stream key seen (cdr $)))]))]))
+
+;; --- key-building helpers ---
+
+;; A term is ground if it contains no logic variables.
+(define (ground? t)
+  (cond
+    [(var? t) #f]
+    [(pair? t) (and (ground? (car t)) (ground? (cdr t)))]
+    [else #t]))
+
+;; ground-key : variable (term -> any) -> (state -> any)
+;;
+;; Lifts a host function on terms into a prune key on states: walks `v`
+;; in the current substitution and, if the result is ground, applies `f`
+;; to it. Returns `skip-prune` when `v` hasn't ground out yet, so those
+;; states pass through `prune` unfiltered.
+;;
+;; Typical use in PBE synthesis:
+;;   (prune (ground-key e (lambda (t) (map (eval-on t) inputs)))
+;;          (expr e depth))
+(define (ground-key v f)
+  (lambda (s/c)
+    (let ([t (walk* v (car s/c))])
+      (if (ground? t)
+          (f t)
+          skip-prune))))
+
+;; when-ground : variable (term -> boolean) -> goal
+;;
+;; A goal that succeeds when `v` walks to a ground term satisfying
+;; `pred`, and fails otherwise (including when `v` is still non-ground).
+;; Useful as the final "accept this candidate" stage of a synthesis run.
+(define (when-ground v pred)
+  (lambda (s/c)
+    (let ([t (walk* v (car s/c))])
+      (if (and (ground? t) (pred t))
+          (unit s/c)
+          '()))))
