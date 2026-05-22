@@ -4,6 +4,8 @@
 ;; For now, just re-exports the bare microKanren core; pruning to follow.
 
 (require "microkanren.rkt"
+         "wrappers.rkt"
          "prune.rkt")
 (provide (all-from-out "microkanren.rkt")
+         (all-from-out "wrappers.rkt")
          (all-from-out "prune.rkt"))
