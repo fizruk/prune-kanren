@@ -1,6 +1,7 @@
 #lang racket/base
 
 ;; prune-kanren: miniKanren with built-in pruning for PBE program synthesis.
-;; No implementation yet.
+;; For now, just re-exports the bare microKanren core; pruning to follow.
 
-(provide)
+(require "microkanren.rkt")
+(provide (all-from-out "microkanren.rkt"))
