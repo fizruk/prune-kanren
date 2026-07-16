@@ -186,29 +186,68 @@
 ;; mplus-w: emit cells in descending weight order. Uses peek-weight to
 ;; decide which side wins without forcing the loser. Only forces a lazy
 ;; when its ceiling indicates it might still produce a winning cell.
-(define (mplus-w $1 $2)
-  (cond
-    [(null? $1) $2]
-    [(null? $2) $1]
-    [else
-     (let ([w1 (peek-weight $1)] [w2 (peek-weight $2)])
-       (cond
-         [(>= w1 w2) (mplus-w-advance $1 $2 w1 w2)]
-         [else       (mplus-w-advance $2 $1 w2 w1)]))]))
+;;
+;; A merge of many alternatives (one per pending disjunct or bind
+;; cell) is kept in a pairing max-heap keyed by peek-weight, rather
+;; than in a nest of binary merges: with a binary nest, emitting the
+;; next cell costs O(#alternatives), which dominates the run time of
+;; best-first search (each pull re-traverses the whole frontier of
+;; suspended alternatives). The heap is hidden behind the public
+;; stream interface as `lazy-merge`, a subtype of `lazy` that
+;; additionally carries the heap, so that nested mplus-w calls meld
+;; heaps in O(1) while every other consumer treats the merge as an
+;; ordinary immature stream.
 
-;; Advance the higher-priority stream `$winner` (weight w-win); the
-;; other side is `$loser` (weight w-lose).
-(define (mplus-w-advance $winner $loser w-win w-lose)
+(struct lazy-merge lazy (heap) #:transparent)
+
+;; Pairing max-heap of (non-null, non-merge) streams keyed by
+;; peek-weight. A heap is #f (empty) or (cons top-stream children),
+;; where children is a list of heaps.
+(define (heap-meld h1 h2)
   (cond
-    [(lazy? $winner)
-     ;; Force the winning lazy; result is a new stream to merge with loser.
-     (lazy w-win (lambda () (mplus-w ((lazy-thunk $winner)) $loser)))]
+    [(not h1) h2]
+    [(not h2) h1]
+    [(>= (peek-weight (car h1)) (peek-weight (car h2)))
+     (cons (car h1) (cons h2 (cdr h1)))]
+    [else (cons (car h2) (cons h1 (cdr h2)))]))
+
+(define (heap-meld-pairs hs)
+  (cond
+    [(null? hs) #f]
+    [(null? (cdr hs)) (car hs)]
+    [else (heap-meld (heap-meld (car hs) (cadr hs))
+                     (heap-meld-pairs (cddr hs)))]))
+
+;; heap-add: insert a stream, flattening nested merges by melding
+;; their heaps directly.
+(define (heap-add h $)
+  (cond
+    [(null? $) h]
+    [(lazy-merge? $) (heap-meld h (lazy-merge-heap $))]
+    [else (heap-meld h (cons $ '()))]))
+
+;; heap->stream: expose a heap as a public weighted stream. If the
+;; top is mature, emit its head cell and re-insert its tail. If the
+;; top is immature, the whole merge is immature with the top's
+;; ceiling; forcing it forces exactly one step of the top.
+(define (heap->stream h)
+  (cond
+    [(not h) '()]
     [else
-     ;; Winner is mature; emit head, defer rest. The deferred lazy's
-     ;; ceiling is max of the rest of winner and loser.
-     (cons (car $winner)
-           (lazy (max (peek-weight (cdr $winner)) w-lose)
-                 (lambda () (mplus-w (cdr $winner) $loser))))]))
+     (let ([top (car h)])
+       (cond
+         [(lazy? top)
+          (lazy-merge (lazy-weight top)
+                      (lambda ()
+                        (let ([rest (heap-meld-pairs (cdr h))])
+                          (heap->stream (heap-add rest ((lazy-thunk top))))))
+                      h)]
+         [else
+          (let ([rest (heap-meld-pairs (cdr h))])
+            (cons (car top) (heap->stream (heap-add rest (cdr top)))))]))]))
+
+(define (mplus-w $1 $2)
+  (heap->stream (heap-add (heap-add #f $1) $2)))
 
 ;; bind-w: for each (w, state) in $, apply g, scale by w. The output
 ;; ceiling is conservatively (lazy-weight $) -- assumes g's output is
