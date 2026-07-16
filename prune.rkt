@@ -5,7 +5,7 @@
 ;; (prune key g) wraps a goal g and filters its answer stream so that at
 ;; most one state is emitted per distinct value of (key s/c). The key
 ;; function is supplied per call, so the equivalence used to prune is
-;; chosen locally — e.g. "behavior on the input examples" for PBE
+;; chosen locally -- e.g. "behavior on the input examples" for PBE
 ;; synthesis, or "shape modulo alpha-renaming" elsewhere.
 ;;
 ;; The dedup table is local to one prune call and shared across the
@@ -19,9 +19,10 @@
          "wrappers.rkt")
 
 (provide prune skip-prune
-         ground? ground-key when-ground)
+         ground? ground-key when-ground
+         prune-w)
 
-;; Sentinel a key function may return to mean "don't dedup yet" —
+;; Sentinel a key function may return to mean "don't dedup yet" --
 ;; typically because the relevant variables are still fresh.
 (define skip-prune 'skip-prune)
 
@@ -83,3 +84,25 @@
       (if (and (ground? t) (pred t))
           (unit s/c)
           '()))))
+
+;; --- prune-w : prune for weighted streams ------------------------------
+
+(define (prune-w key g)
+  (lambda (s/c)
+    (prune-stream-w key (make-hash) (lift-w (g s/c)))))
+
+(define (prune-stream-w key seen $)
+  (cond
+    [(null? $) '()]
+    [(lazy? $) (lazy (lazy-weight $)
+                     (lambda () (prune-stream-w key seen ((lazy-thunk $)))))]
+    [else
+     (let* ([cell (car $)] [s (cdr cell)] [k (key s)])
+       (cond
+         [(eq? k skip-prune)
+          (cons cell (prune-stream-w key seen (cdr $)))]
+         [(hash-has-key? seen k)
+          (prune-stream-w key seen (cdr $))]
+         [else
+          (hash-set! seen k #t)
+          (cons cell (prune-stream-w key seen (cdr $)))]))]))
