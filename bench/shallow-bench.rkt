@@ -13,26 +13,6 @@
 ;;
 ;; For each target, bounded is run at the smallest depth that admits a
 ;; solution (best case for bounded). defrel/bank has no depth knob.
-;;
-;; --- Observed patterns ----------------------------------------------------
-;;
-;; Arithmetic (3 integer inputs, small behavior space):
-;;   - bank ties or BEATS bounded for several targets (x^2+x, x^3, x^3+1).
-;;     The x^3+1 case is the most striking: bank is ~5x faster than
-;;     depth-3 bounded.
-;;   - bank is ~1.5x slower for (1+x)^2+1.
-;;
-;; String (3 string inputs, wide behavior space):
-;;   - At depth 2, bank is 3-10x slower than bounded depth=2. Wide
-;;     behavior space means depth-less exploration visits many
-;;     non-pruned states before reaching the depth-2 answer.
-;;   - At depth 3, bank and bounded are tied.
-;;
-;; Likely reason bank can beat bounded at depth >= 3 in arithmetic: the
-;; expr-bounded version creates a *fresh* prune cache per recursive
-;; call (each `prune` call gets its own `make-hash`), so the depth-1
-;; subgoal can't reuse the depth-2 subgoal's dedup work. defrel/bank
-;; has a single shared cache for the whole canonical run.
 
 (require "../main.rkt"
          "bank.rkt")

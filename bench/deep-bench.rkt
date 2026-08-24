@@ -25,41 +25,6 @@
 ;;               otherwise occur. Finds the most compact representative
 ;;               first; pays for it on deep targets because it must
 ;;               emit all shallower cells first (BFS-style).
-;;
-;; --- Results (author's machine, heap-based mplus-w) --------------------------
-;;
-;; Target     d   bounded     bank (DFS)      bank-w (BFS)    Bank-w compact?
-;; -------------------------------------------------------------------------
-;; (1+x)^2    2   0.2 ms      0.2 ms (d=4)    16 ms (d=2)     YES
-;; (1+x)^3    3   3.3 ms      9.9 ms (d=8)    5.3 s (d=3)     YES
-;; x^5        4   0.6 ms      0.1 ms (d=4)    126 ms (d=4)    YES (left-assoc)
-;; (1+x)^4    4   139 ms      1993 ms (d=10)  TIMEOUT (30s)   --
-;; x^5 + x    5   3.3 ms      0.1 ms          14.7 s          YES (left-assoc)
-;; x^5 + 1    5   24 ms       0.7 ms          26.4 s          YES (left-assoc)
-;; x^6        5   3.6 ms      0.2 ms          12.6 s          YES (balanced)
-;; (1+x)^5    5   6.6 s       TIMEOUT (30s)   TIMEOUT (30s)   --
-;; x^6 + 1    6   139 ms      1.4 ms          TIMEOUT (60s)   --
-;; x^7        6   20 ms       0.3 ms          TIMEOUT (60s)   --
-;;
-;; Summary:
-;;
-;;   - bank (DFS) wins big on right-spine targets (x^k, x^k+1, x^k+x) --
-;;     10-100x faster than bounded. Compact representatives too.
-;;   - bank-w (BFS) reliably finds the COMPACT representative when it
-;;     succeeds, and with the pairing-heap mplus-w it solves 6 of 10
-;;     targets (the earlier binary-merge nests solved only 2: each
-;;     pull re-traversed the whole frontier of suspended
-;;     alternatives). Deep arithmetic still overwhelms it: every cell
-;;     of a weight class must be emitted before any lower class, and
-;;     class sizes grow with the number of distinct behaviors.
-;;   - (1+x)^4 and (1+x)^5 defeat both bank variants; only bounded
-;;     finds them by virtue of its hard depth cut.
-;;
-;; Neither bank variant dominates. Use defrel/bank for performance on
-;; right-spine-like grammars; use defrel/bank-w when the behavior
-;; space is wide but the target is shallow, or when you need the
-;; compact representative. Use bounded when you know the depth and
-;; want predictable behavior.
 
 (require "../main.rkt"
          "bank.rkt")
