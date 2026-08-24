@@ -20,7 +20,9 @@ weighted streams, applying a decay factor per recursive call, so
 shallow representatives are emitted before deeper ones.
 
 For details, see the paper "Towards Bottom-Up Enumeration in
-miniKanren via Pruning and Memoization" (miniKanren 2026).
+miniKanren via Pruning and Memoization" (miniKanren 2026), and the
+[slides](https://fizruk.github.io/files/miniKanren-2026-prune-kanren-slides.pdf)
+from the workshop talk.
 
 ## Example
 
