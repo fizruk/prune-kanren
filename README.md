@@ -1,5 +1,9 @@
 # prune-kanren
 
+> [!WARNING]
+> This is a work-in-progress experiment with some usable preliminary
+> results. Interfaces and internals may change.
+
 A miniKanren implementation with a built-in pruning mechanism, in
 particular suitable for programming-by-example (PBE) program synthesis.
 
