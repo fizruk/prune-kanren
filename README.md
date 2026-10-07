@@ -71,8 +71,8 @@ Synthesize an arithmetic expression `e` over one input `x` such that
 
 - `microkanren.rkt` — microKanren core, plus fair (`-i`) and weighted
   (`-w`) stream combinators.
-- `wrappers.rkt` — miniKanren-style surface forms (`conde`, `fresh`,
-  `run`, `run*`) and their `-i`/`-w` variants.
+- `wrappers.rkt` — `conde` and `fresh` with `-i`/`-w` variants,
+  plus `run`, `run*`, `run-w`, and `run*-w`.
 - `prune.rkt` — the `prune` combinator, the `skip-prune` sentinel, and
   the `ground-key` / `when-ground` helpers.
 - `memo.rkt` — `defrel/memo`, `defrel/bank`, `defrel/bank-w`.
