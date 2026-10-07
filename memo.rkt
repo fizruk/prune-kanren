@@ -140,10 +140,9 @@
        (make-memo-rel (length '(x ...))
                       (lambda (x ...) (conj+ body ...))))]))
 
-;; defrel/bank: like defrel/memo but additionally prunes the canonical
-;; stream by the supplied key. Prune runs once at canonical-stream
-;; construction time; replays already see only one representative per
-;; key. Use shape:
+;; defrel/bank prunes the canonical stream before replay. Filtering is
+;; shared across replays and proceeds as the stream is forced;
+;; skip-prune states remain unfiltered. Use shape:
 ;;
 ;;   (defrel/bank (rel x ...) #:prune key-expr body ...)
 ;;

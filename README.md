@@ -10,9 +10,9 @@ particular suitable for programming-by-example (PBE) program synthesis.
 The library extends a minimal microKanren core (Hemann & Friedman,
 2013) with two combinators:
 
-- `prune` wraps a goal and keeps at most one answer per equivalence
-  class. The equivalence is given by a user-supplied key function,
-  e.g. "behavior on the input examples" for PBE synthesis.
+- `prune` wraps a goal and keeps at most one answer per key value,
+  using `equal?` equality. Answers whose key is `skip-prune` pass
+  through unfiltered. A PBE key can describe behaviour on the inputs.
 - `defrel/memo` defines a relation whose answer stream is computed
   once per `run` and replayed for each caller. `defrel/bank`
   additionally prunes the memoized stream, which gives a bottom-up
