@@ -82,14 +82,8 @@
   (cond
     [(null? canonical) '()]
     [(procedure? canonical)
-     ;; Collapse a chain of immature canonical thunks into a single
-     ;; replay-thunk force -- when the consumer asks for the next state,
-     ;; we keep forcing until we get a concrete cons (or null), instead
-     ;; of producing a new replay-thunk for each layer of canonical
-     ;; laziness. This is what `pull` does on the consumer side; doing
-     ;; it here cuts the thunk-force count from ~330k to ~3k for the
-     ;; PBE bench and brings defrel/bank to within 1.5x of the
-     ;; depth-bounded baseline.
+     ;; Force consecutive canonical thunks within one replay thunk,
+     ;; avoiding a separate replay wrapper for each immature layer.
      (lambda ()
        (let loop ([c (canonical)])
          (cond
