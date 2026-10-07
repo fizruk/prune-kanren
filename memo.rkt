@@ -187,13 +187,11 @@
                       (lambda (x ...) (conj+ body ...))
                       (lambda (x ...) key-expr)))]))
 
-;; --- defrel/bank-w : weighted bank with depth decay --------------------
+;; --- defrel/bank-w : weighted bank with call decay ---------------------
 ;;
-;; Same as defrel/bank but uses weighted streams and applies a decay
-;; factor to each call. Recursive uses of the relation get weight
-;; scaled by `decay` (default 0.5). With sorted-merge mplus-w, this
-;; produces depth-ordered enumeration: shallow representatives are
-;; emitted before deeper ones.
+;; Like defrel/bank, but each invocation scales its weighted output by
+;; `decay` (default 0.5). Conjunction multiplies weights, so with
+;; 0 < decay < 1 this favours fewer weighted calls, not minimum tree depth.
 ;;
 ;;   (defrel/bank-w (rel x ...) #:prune key-expr #:decay d body ...)
 ;;
@@ -201,11 +199,9 @@
 ;; so its internal scheduling participates in the weighted ordering.
 ;; Plain == is auto-lifted to weight 1.
 ;;
-;; Replay-stream-w is the weighted analogue of replay-stream: each
-;; canonical cell carries a weight that gets passed through to the
-;; caller. The outer `(scale-w decay ...)` wrapper adds one factor of
-;; decay per invocation, so a depth-K canonical cell delivered to the
-;; caller has weight roughly decay^(2K+1).
+;; replay-stream-w preserves canonical cell weights. The outer scale-w
+;; adds one decay factor per invocation; conjunction multiplies the
+;; factors from all subgoals. Depth alone does not determine the weight.
 
 (define (replay-stream-w canonical caller-state args-vec num-args)
   (cond

@@ -20,8 +20,9 @@ The library extends a minimal microKanren core (Hemann & Friedman,
   non-relational PBE synthesis tools.
 
 A best-first variant `defrel/bank-w` enumerates representatives on
-weighted streams, applying a decay factor per recursive call, so
-shallow representatives are emitted before deeper ones.
+weighted streams. Each invocation scales its output by a decay factor
+(default 0.5), and conjunction multiplies weights. This favours fewer
+weighted calls, rather than guaranteeing increasing tree depth.
 
 For details, see the paper ["Towards Bottom-Up Enumeration in
 miniKanren via Pruning and Memoization"](https://arxiv.org/abs/2607.25373)
