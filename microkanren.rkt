@@ -103,10 +103,9 @@
 ;;     University, 2009. -- discussion of conjunction fairness and
 ;;     interleaving alternatives.
 ;;
-;; Note the asymmetry vs `mplus`: the `else` branch wraps the cdr in a
-;; thunk so the consumer's next pull will alternate to $2. This costs
-;; one thunk allocation per element but produces a fair diagonal
-;; enumeration of (l, r) pairs.
+;; Unlike mplus, mplus-i suspends the tail after each mature cell and
+;; switches to the other stream. bind-i nests these interleavings;
+;; it does not impose an antidiagonal order on pairs.
 
 (define (mplus-i $1 $2)
   (cond

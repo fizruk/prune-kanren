@@ -53,11 +53,9 @@
 ;; fresh-i : like fresh but combines its body with conj-i+.
 ;; conde-i : like conde but uses conj-i+ inside each clause.
 ;;
-;; Use these when conj's depth bias hurts -- typically when the body
-;; has independent recursive subgoals like `(rel l) (rel r)` and you
-;; want fair coverage of (l, r) pairs along antidiagonals rather than
-;; a nested-loop enumeration. The cost is one extra thunk allocation
-;; per emitted state.
+;; Use these to interleave conjunction results, for example from
+;; independent recursive subgoals `(rel l) (rel r)`. Their order follows
+;; nested interleaving, rather than an antidiagonal schedule.
 
 (define (conj-i g1 g2) (lambda (s/c) (bind-i (g1 s/c) g2)))
 
