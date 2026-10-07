@@ -201,10 +201,8 @@
   (cond
     [(null? canonical) '()]
     [(lazy? canonical)
-     ;; Preserve the canonical lazy's weight ceiling -- replay doesn't
-     ;; change weights, only renames vars. Crucially, we do NOT force
-     ;; the canonical thunk here; the lazy is returned as-is, and the
-     ;; consumer forces it only when its weight indicates it might win.
+     ;; Preserve the canonical ceiling in a new lazy wrapper. Defer
+     ;; forcing and replay until the consumer forces that wrapper.
      (lazy (lazy-weight canonical)
            (lambda ()
              (replay-stream-w ((lazy-thunk canonical))
