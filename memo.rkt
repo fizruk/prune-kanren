@@ -9,9 +9,10 @@
 ;; Each subsequent call replays this canonical stream against the
 ;; caller's args:
 ;;   - canonical input vars are renamed to the caller's actual args;
-;;   - canonical internal fresh vars (idx >= N) are shifted by the
-;;     caller's counter to allocate fresh vars in the caller's namespace;
-;;   - the renamed bindings are unified into the caller's substitution.
+;;   - internal indices are shifted by caller-counter - N, so index N
+;;     maps to the caller's next fresh index;
+;;   - each walked canonical argument is renamed and unified with the
+;;     corresponding caller argument in the caller's substitution.
 ;;
 ;; Recursive calls inside the body Zzz-suspend, so by the time they fire
 ;; the cache entry is in place. The lazy thunks of the canonical stream
