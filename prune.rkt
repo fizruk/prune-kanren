@@ -2,11 +2,9 @@
 
 ;; Pruning combinator.
 ;;
-;; (prune key g) wraps a goal g and filters its answer stream so that at
-;; most one state is emitted per distinct value of (key s/c). The key
-;; function is supplied per call, so the equivalence used to prune is
-;; chosen locally -- e.g. "behavior on the input examples" for PBE
-;; synthesis, or "shape modulo alpha-renaming" elsewhere.
+;; (prune key g) keeps at most one state per equal? key value, except
+;; that skip-prune states pass through unfiltered. The caller supplies
+;; the key, e.g. behaviour on PBE inputs or shape modulo alpha-renaming.
 ;;
 ;; The dedup table is local to one prune call and shared across the
 ;; stream's lazy thunks (the closure captures it), so dedup state

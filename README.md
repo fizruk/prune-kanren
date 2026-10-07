@@ -10,9 +10,9 @@ particular suitable for programming-by-example (PBE) program synthesis.
 The library extends a minimal microKanren core (Hemann & Friedman,
 2013) with two combinators:
 
-- `prune` wraps a goal and keeps at most one answer per equivalence
-  class. The equivalence is given by a user-supplied key function,
-  e.g. "behavior on the input examples" for PBE synthesis.
+- `prune` wraps a goal and keeps at most one answer per key value,
+  using `equal?` equality. Answers whose key is `skip-prune` pass
+  through unfiltered. A PBE key can describe behaviour on the inputs.
 - `defrel/memo` defines a relation whose answer stream is computed
   once per `run` and replayed for each caller. `defrel/bank`
   additionally prunes the memoized stream, which gives a bottom-up
@@ -20,8 +20,9 @@ The library extends a minimal microKanren core (Hemann & Friedman,
   non-relational PBE synthesis tools.
 
 A best-first variant `defrel/bank-w` enumerates representatives on
-weighted streams, applying a decay factor per recursive call, so
-shallow representatives are emitted before deeper ones.
+weighted streams. Each invocation scales its output by a decay factor
+(default 0.5), and conjunction multiplies weights. This favours fewer
+weighted calls, rather than guaranteeing increasing tree depth.
 
 For details, see the paper ["Towards Bottom-Up Enumeration in
 miniKanren via Pruning and Memoization"](https://arxiv.org/abs/2607.25373)
@@ -70,8 +71,8 @@ Synthesize an arithmetic expression `e` over one input `x` such that
 
 - `microkanren.rkt` — microKanren core, plus fair (`-i`) and weighted
   (`-w`) stream combinators.
-- `wrappers.rkt` — miniKanren-style surface forms (`conde`, `fresh`,
-  `run`, `run*`) and their `-i`/`-w` variants.
+- `wrappers.rkt` — `conde` and `fresh` with `-i`/`-w` variants,
+  plus `run`, `run*`, `run-w`, and `run*-w`.
 - `prune.rkt` — the `prune` combinator, the `skip-prune` sentinel, and
   the `ground-key` / `when-ground` helpers.
 - `memo.rkt` — `defrel/memo`, `defrel/bank`, `defrel/bank-w`.

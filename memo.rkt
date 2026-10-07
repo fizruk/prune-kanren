@@ -9,9 +9,10 @@
 ;; Each subsequent call replays this canonical stream against the
 ;; caller's args:
 ;;   - canonical input vars are renamed to the caller's actual args;
-;;   - canonical internal fresh vars (idx >= N) are shifted by the
-;;     caller's counter to allocate fresh vars in the caller's namespace;
-;;   - the renamed bindings are unified into the caller's substitution.
+;;   - internal indices are shifted by caller-counter - N, so index N
+;;     maps to the caller's next fresh index;
+;;   - each walked canonical argument is renamed and unified with the
+;;     corresponding caller argument in the caller's substitution.
 ;;
 ;; Recursive calls inside the body Zzz-suspend, so by the time they fire
 ;; the cache entry is in place. The lazy thunks of the canonical stream
@@ -81,14 +82,8 @@
   (cond
     [(null? canonical) '()]
     [(procedure? canonical)
-     ;; Collapse a chain of immature canonical thunks into a single
-     ;; replay-thunk force -- when the consumer asks for the next state,
-     ;; we keep forcing until we get a concrete cons (or null), instead
-     ;; of producing a new replay-thunk for each layer of canonical
-     ;; laziness. This is what `pull` does on the consumer side; doing
-     ;; it here cuts the thunk-force count from ~330k to ~3k for the
-     ;; PBE bench and brings defrel/bank to within 1.5x of the
-     ;; depth-bounded baseline.
+     ;; Force consecutive canonical thunks within one replay thunk,
+     ;; avoiding a separate replay wrapper for each immature layer.
      (lambda ()
        (let loop ([c (canonical)])
          (cond
@@ -140,10 +135,9 @@
        (make-memo-rel (length '(x ...))
                       (lambda (x ...) (conj+ body ...))))]))
 
-;; defrel/bank: like defrel/memo but additionally prunes the canonical
-;; stream by the supplied key. Prune runs once at canonical-stream
-;; construction time; replays already see only one representative per
-;; key. Use shape:
+;; defrel/bank prunes the canonical stream before replay. Filtering is
+;; shared across replays and proceeds as the stream is forced;
+;; skip-prune states remain unfiltered. Use shape:
 ;;
 ;;   (defrel/bank (rel x ...) #:prune key-expr body ...)
 ;;
@@ -187,13 +181,11 @@
                       (lambda (x ...) (conj+ body ...))
                       (lambda (x ...) key-expr)))]))
 
-;; --- defrel/bank-w : weighted bank with depth decay --------------------
+;; --- defrel/bank-w : weighted bank with call decay ---------------------
 ;;
-;; Same as defrel/bank but uses weighted streams and applies a decay
-;; factor to each call. Recursive uses of the relation get weight
-;; scaled by `decay` (default 0.5). With sorted-merge mplus-w, this
-;; produces depth-ordered enumeration: shallow representatives are
-;; emitted before deeper ones.
+;; Like defrel/bank, but each invocation scales its weighted output by
+;; `decay` (default 0.5). Conjunction multiplies weights, so with
+;; 0 < decay < 1 this favours fewer weighted calls, not minimum tree depth.
 ;;
 ;;   (defrel/bank-w (rel x ...) #:prune key-expr #:decay d body ...)
 ;;
@@ -201,20 +193,16 @@
 ;; so its internal scheduling participates in the weighted ordering.
 ;; Plain == is auto-lifted to weight 1.
 ;;
-;; Replay-stream-w is the weighted analogue of replay-stream: each
-;; canonical cell carries a weight that gets passed through to the
-;; caller. The outer `(scale-w decay ...)` wrapper adds one factor of
-;; decay per invocation, so a depth-K canonical cell delivered to the
-;; caller has weight roughly decay^(2K+1).
+;; replay-stream-w preserves canonical cell weights. The outer scale-w
+;; adds one decay factor per invocation; conjunction multiplies the
+;; factors from all subgoals. Depth alone does not determine the weight.
 
 (define (replay-stream-w canonical caller-state args-vec num-args)
   (cond
     [(null? canonical) '()]
     [(lazy? canonical)
-     ;; Preserve the canonical lazy's weight ceiling -- replay doesn't
-     ;; change weights, only renames vars. Crucially, we do NOT force
-     ;; the canonical thunk here; the lazy is returned as-is, and the
-     ;; consumer forces it only when its weight indicates it might win.
+     ;; Preserve the canonical ceiling in a new lazy wrapper. Defer
+     ;; forcing and replay until the consumer forces that wrapper.
      (lazy (lazy-weight canonical)
            (lambda ()
              (replay-stream-w ((lazy-thunk canonical))
